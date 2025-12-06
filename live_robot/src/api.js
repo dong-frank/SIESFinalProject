@@ -46,4 +46,8 @@ export class ApiClient {
     static cancelTracker() {
         return this._request('cancel_tracker', { method: 'POST' });
     }
+
+    static resetCamera() {
+        return this._request('reset_camera', {method: 'POST'});
+    }
 }

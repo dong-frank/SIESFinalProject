@@ -8,11 +8,17 @@ export class StatusManager {
     constructor(videoStream) {
         this.videoStream = videoStream;
         this.status = { camera_enabled: false };
+        this.isRecording = false;
         this.ui = {
             cameraBtn: document.querySelector('#toggle-camera-btn'),
             cameraStatus: document.querySelector('#camera-status'),
+            resetBtn: document.querySelector('#reset-camera-btn'),
+            toggleRecordBtn: document.querySelector('#toggle-record-btn'),
+            recordIndicator: document.querySelector('#record-indicator')
         };
         this.ui.cameraBtn.addEventListener('click', () => this.toggleCamera());
+        this.ui.resetBtn.addEventListener('click', () => this.resetCamera());
+        this.ui.toggleRecordBtn.addEventListener('click', () => this.toggleRecording());
     }
 
     async toggleCamera() {
@@ -21,6 +27,22 @@ export class StatusManager {
             await this.update();
         } catch (error) {
         }
+    }
+
+    async resetCamera() {
+        this.ui.resetBtn.disabled = true;
+        try {
+            await ApiClient.resetCamera();
+            await this.update();
+        } catch (error) {
+        } finally {
+            this.ui.resetBtn.disabled = false;
+        }
+    }
+
+    toggleRecording() {
+        this.isRecording = !this.isRecording;
+        this.updateUI();
     }
 
     async update() {
@@ -39,6 +61,8 @@ export class StatusManager {
         this.ui.cameraStatus.classList.toggle('status-on', camera_enabled);
         this.ui.cameraStatus.classList.toggle('status-off', !camera_enabled);
         this.ui.cameraBtn.textContent = camera_enabled ? '关闭摄像头' : '开启摄像头';
+        this.ui.toggleRecordBtn.textContent = this.isRecording ? '停止直播' : '开始直播';
+        this.ui.recordIndicator.style.display = this.isRecording && camera_enabled ? 'flex' : 'none';
 
         camera_enabled ? this.videoStream.start() : this.videoStream.stop();
     }

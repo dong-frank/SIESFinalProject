@@ -45,6 +45,10 @@ def calculate_iou(box1, box2):
     return inter / union if union > 0 else 0
 
 def draw_tracked_bbox(img, bbox, identities=None, offset=(0, 0), ser=None):
+    # 如果正在复位中，不要发送坐标，防止干扰
+    if state.should_reset_servo:
+        return img
+    
     # 引用 shared_state 中的变量
     global last_locked_bbox
     
@@ -123,7 +127,8 @@ def draw_tracked_bbox(img, bbox, identities=None, offset=(0, 0), ser=None):
             if ser is not None:
                 try:
                     data_str = f"{id},{center_x},{center_y}\n"
-                    ser.write(data_str.encode('utf-8'))
+                    with state.serial_lock:
+                        ser.write(data_str.encode('utf-8'))
                 except Exception as e:
                     print(f"Serial error: {e}")
 
@@ -220,8 +225,11 @@ def main():
 
     # 2. 初始化串口
     ser = None
-    # try: ser = serial.Serial(SERIAL_PORT, 115200, timeout=0.1)
-    # except: print("Serial init failed")
+    try: 
+        ser = serial.Serial(SERIAL_PORT, 115200, timeout=0.1)
+        print(f"Success: Serial opened on {SERIAL_PORT}")
+    except Exception as e:  # [修改] 捕获 Exception 并打印 e
+        print(f"CRITICAL ERROR: Serial init failed. Reason: {e}")
 
     # 3. 启动 Flask 线程 (调用 web_server 模块)
     flask_thread = threading.Thread(target=web_server.run_flask_app)
@@ -242,6 +250,20 @@ def main():
     print("System Ready. Press Ctrl+C to stop.")
     try:
         while True:
+
+            if state.should_reset_servo:
+                if ser is not None:
+                    try:
+                        with state.serial_lock:
+                            ser.write("RESET\n".encode('utf-8'))
+                            ser.flush()
+                    except Exception as e:
+                        print(f"Serial reset error: {e}")
+                
+                # 重置标志位
+                with state.interaction_lock:
+                    state.should_reset_servo = False
+            
             is_cam_on = True
             with state.state_lock:
                 is_cam_on = state.camera_enabled

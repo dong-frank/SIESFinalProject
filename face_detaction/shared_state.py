@@ -16,4 +16,8 @@ detection_lock = threading.Lock()
 user_roi = None             # 用户画的框 (x1, y1, x2, y2)
 roi_timeout_counter = 0     # ROI 搜索超时计数器
 locked_track_id = None      # 当前锁定的目标 ID
+
+should_reset_servo = False  # 舵机复位请求标志
+serial_lock = threading.Lock() # 串口互斥锁
+
 interaction_lock = threading.Lock()

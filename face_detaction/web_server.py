@@ -99,6 +99,23 @@ def get_detections():
         data = state.latest_detections
     return jsonify(data)
 
+
+@app.route("/reset_camera", methods=['POST'])
+def reset_camera():
+    try:
+        with state.interaction_lock:
+            # 1. 取消当前的跟踪锁定，防止复位后马上又被拉回去
+            state.user_roi = None
+            state.locked_track_id = None
+            
+            # 2. 设置复位标志位
+            state.should_reset_servo = True
+            
+        print("Camera reset requested: Servo returning to center.")
+        return jsonify({"status": "success", "msg": "Reset command queued"})
+    except Exception as e:
+        return jsonify({"status": "error", "msg": str(e)}), 400
+
 def run_flask_app(host="0.0.0.0", port=5000):
     """启动 Flask 应用"""
     app.run(host=host, port=port, debug=False, use_reloader=False)
